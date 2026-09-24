@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  
+  # 1er service : La base de données MongoDB
+  mongodb:
+    image: mongo:latest
+    container_name: medical_db
+    # Fait le pont entre les ports : le port 27018 de votre machine hôte (PC) pointe vers le port 27017 (port par défaut de MongoDB) du conteneur
+    ports:
+      - "27018:27017"
+    # === LES VARIABLES D'ENVIRONNEMENT DE LA BASE ===
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: supersecretpassword
+    
+    volumes:
+      # Les données internes de MongoDB (/data/db) sont sauvegardées dans le volume 'db_data'
+      - db_data:/data/db
+
+  # 2ème service : Votre script Python de migration
+  migration:
+  
+    build: .
+    container_name: data_migration
+    depends_on:
+      - mongodb
+    # Injecte vos fichiers de données locaux dans le conteneur
+    volumes:
+      - ./data:/app/data
+    # === LA VARIABLE D'ENVIRONNEMENT POUR PYTHON ===
+    environment:
+      # On transmet l'URL de connexion complète à Python sous le nom "MONGO_URI".
+      # Notez qu'on utilise "mongodb:27017" car on est à l'intérieur du réseau Docker.
+      MONGO_URI: mongodb://admin:supersecretpassword@mongodb:27017/?authSource=admin
+
+volumes:
+  # Crée l'espace de stockage nommé "db_data" qui survivra même si les conteneurs sont détruits
+  db_data:
