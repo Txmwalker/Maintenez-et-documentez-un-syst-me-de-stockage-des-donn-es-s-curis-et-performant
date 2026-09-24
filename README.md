@@ -1,6 +1,4 @@
-<<<<<<< HEAD
 # Maintenez-et-documentez-un-syst-me-de-stockage-des-donn-es-s-curis-et-performant
-=======
 # Healthcare Data Migration Pipeline
 
 ## Description
@@ -82,4 +80,3 @@ Mode d'authentification : SCRAM-SHA-256 (Standard MongoDB).
 Rôle Administrateur (Root) : Utilisateur admin créé au lancement via MONGO_INITDB_ROOT_USERNAME. Il possède les droits globaux sur le cluster.
 
 Évolution Cloud (AWS) : Pour un futur passage en production sur AWS (DocumentDB ou ECS), un rôle avec le privilège restrictif readWrite limité exclusivement à la base medical_db devra être créé pour le script applicatif, respectant ainsi le principe du moindre privilège.
->>>>>>> adf1285 (Initialisation du projet)
