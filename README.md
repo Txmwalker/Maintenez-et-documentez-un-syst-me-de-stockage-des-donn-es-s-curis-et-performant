@@ -20,7 +20,7 @@ L'ensemble de l'infrastructure (base de données et script Python) est conteneur
 
 ```bash
 # Lance MongoDB, construit l'environnement Python et exécute la migration en une commande
-docker-compose up --build
+docker-compose up --build --attach migration_and_tests
 ```
 
 ## 2. Relance manuelle de la migration et des tests

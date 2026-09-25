@@ -44,10 +44,10 @@ def test_no_strict_duplicates_in_db(db_collection):
     """Demande à MongoDB de vérifier l'absence de doublons stricts sur une combinaison de champs clés."""
     pipeline = [
         {"$group": {
-            "_id": {"Name": "\(Name", "Age": "\)Age", "Billing": "$Billing Amount"}, 
+            "_id": {"Name": "$Name", "Age": "$Age", "Billing": "$Billing Amount"}, 
             "count": {"$sum": 1}
         }},
-        {"\(match": {"count": {"\)gt": 1}}}
+        {"$match": {"count": {"$gt": 1}}}
     ]
     duplicates = list(db_collection.aggregate(pipeline))
     assert len(duplicates) == 0, "Des documents dupliqués ont été trouvés en base de données."
