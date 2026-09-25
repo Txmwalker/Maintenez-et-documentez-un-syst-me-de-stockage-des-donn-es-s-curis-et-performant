@@ -1,39 +1,43 @@
-version: '3.8'
+# Déclaration explicite du réseau
+networks:
+  healthcare-network:
+    driver: bridge
 
 services:
-  
-  # 1er service : La base de données MongoDB
   mongodb:
-    image: mongo:latest
-    container_name: medical_db
-    # Fait le pont entre les ports : le port 27018 de votre machine hôte (PC) pointe vers le port 27017 (port par défaut de MongoDB) du conteneur
+    image: mongo:6.0
+    container_name: mongodb_healthcare
+    env_file: .env
+    networks:
+      - healthcare-network
     ports:
       - "27018:27017"
-    # === LES VARIABLES D'ENVIRONNEMENT DE LA BASE ===
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: supersecretpassword
-    
     volumes:
-      # Les données internes de MongoDB (/data/db) sont sauvegardées dans le volume 'db_data'
-      - db_data:/data/db
+      - mongo_data:/data/db
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    # Healthcheck pour valider le démarrage
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh -u $${MONGO_INITDB_ROOT_USERNAME} -p $${MONGO_INITDB_ROOT_PASSWORD} --authenticationDatabase admin --eval \"db.adminCommand('ping')\" --quiet"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # 2ème service : Votre script Python de migration
-  migration:
-  
-    build: .
-    container_name: data_migration
+  # Service qui lance la migration puis les tests
+  migration_and_tests:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: migration_script
+    env_file: .env
+    networks:
+      - healthcare-network
     depends_on:
-      - mongodb
-    # Injecte vos fichiers de données locaux dans le conteneur
+      mongodb:
+        condition: service_healthy
     volumes:
-      - ./data:/app/data
-    # === LA VARIABLE D'ENVIRONNEMENT POUR PYTHON ===
-    environment:
-      # On transmet l'URL de connexion complète à Python sous le nom "MONGO_URI".
-      # Notez qu'on utilise "mongodb:27017" car on est à l'intérieur du réseau Docker.
-      MONGO_URI: mongodb://admin:supersecretpassword@mongodb:27017/?authSource=admin
+      - .:/app
+    # si la migration échoue, les tests ne se lancent pas
+    command: sh -c "python migration.py && pytest test_migration.py -v"
 
 volumes:
-  # Crée l'espace de stockage nommé "db_data" qui survivra même si les conteneurs sont détruits
-  db_data:
+  mongo_data: {}

@@ -11,6 +11,7 @@ Ce projet implémente un pipeline de données permettant le nettoyage, la transf
 
 ## Prérequis
 * Docker Desktop installé et en cours d'exécution
+* Fichier `.env` correctement renseigné à la racine.
 
 
 ## 1. Déploiement et Exécution Automatisée
@@ -22,11 +23,22 @@ L'ensemble de l'infrastructure (base de données et script Python) est conteneur
 docker-compose up --build
 ```
 
-## 2. Exécution de la Migration
+## 2. Relance manuelle de la migration et des tests
+
+Si l'infrastructure (le conteneur mongodb_healthcare) est déjà en cours de fonctionnement et que vous souhaitez rejouer les scripts localement :
+Activez votre environnement virtuel Python local.
 
 ```bash
-# Lancer le pipeline complet (lecture CSV, nettoyage, et insertion dans MongoDB)
-docker exec -it data_migration python migration.py
+#Définissez la chaîne de connexion (qui simule les identifiants présents dans le .env pour un accès depuis votre hôte) :
+export MONGO_APP_URI="mongodb://healthcare_user:AppSecretPassword_456@localhost:27017/healthcare_db"
+export APP_DB_NAME="healthcare_db"
+
+#Lancez le script de migration :
+python Script/migration.py
+
+Exécutez les contrôles qualité :
+
+pytest Script/test_migration.py
 ```
 
 ## 3. Tests et Validation
