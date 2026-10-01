@@ -19,8 +19,11 @@ Ce projet implémente un pipeline de données permettant le nettoyage, la transf
 L'ensemble de l'infrastructure (base de données et script Python) est conteneurisé. Aucune installation locale de Python n'est requise.
 
 ```bash
-# Lance MongoDB, construit l'environnement Python et exécute la migration en une commande
-docker-compose up --build --attach migration_and_tests
+# Lance MongoDB
+docker-compose up -d mongodb
+
+# Construit l'environnement Python et exécute la migration et les tests en une commande
+docker-compose run --rm migration_and_tests
 ```
 
 ## 2. Relance manuelle de la migration et des tests
@@ -30,7 +33,7 @@ Activez votre environnement virtuel Python local.
 
 ```bash
 #Définissez la chaîne de connexion (qui simule les identifiants présents dans le .env pour un accès depuis votre hôte) :
-export MONGO_APP_URI="mongodb://healthcare_user:AppSecretPassword_456@localhost:27017/healthcare_db"
+export MONGO_APP_URI="mongodb://healthcare_user:AppSecretPassword_456@localhost:27018/healthcare_db"
 export APP_DB_NAME="healthcare_db"
 
 #Lancez le script de migration :
@@ -91,4 +94,11 @@ Mode d'authentification : SCRAM-SHA-256 (Standard MongoDB).
 
 Rôle Administrateur (Root) : Utilisateur admin créé au lancement via MONGO_INITDB_ROOT_USERNAME. Il possède les droits globaux sur le cluster.
 
-Évolution Cloud (AWS) : Pour un futur passage en production sur AWS (DocumentDB ou ECS), un rôle avec le privilège restrictif readWrite limité exclusivement à la base medical_db devra être créé pour le script applicatif, respectant ainsi le principe du moindre privilège.
+Évolution Cloud (AWS) : Pour un futur passage en production sur AWS (DocumentDB ou ECS), un rôle avec le privilège restrictif readWrite limité exclusivement à la base healthcare_db devra être créé pour le script applicatif, respectant ainsi le principe du moindre privilège.
+
+## 7. Opération CRUD
+
+```bash
+#Commande lancement du script d'exemple d'opérations CRUD
+docker-compose run --rm migration_and_tests python crud_demo.py
+```
