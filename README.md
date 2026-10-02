@@ -96,6 +96,8 @@ Rôle Administrateur (Root) : Utilisateur admin créé au lancement via MONGO_IN
 
 Évolution Cloud (AWS) : Pour un futur passage en production sur AWS (DocumentDB ou ECS), un rôle avec le privilège restrictif readWrite limité exclusivement à la base healthcare_db devra être créé pour le script applicatif, respectant ainsi le principe du moindre privilège.
 
+Rôle Analyste (Read-Only) : Utilisateur `healthcare_reader` créé au lancement, possédant uniquement le privilège `read` sur la base `healthcare_db`. Ce compte est dédié aux outils de Business Intelligence (BI) et d'audit pour consulter les données sans risque de modification.
+
 ## 7. Opération CRUD
 
 ```bash

@@ -1,14 +1,15 @@
 import os
 from pymongo import MongoClient
 
-# Récupération de l'URI depuis les variables d'environnement.
-# S'il n'y a pas de variable d'environnement (ex: exécution en local), 
-# on utilise l'URL de connexion du compte applicatif par défaut.
-DEFAULT_URI = "mongodb://healthcare_user:AppSecretPassword_456@localhost:27018/healthcare_db"
-URI = os.getenv("MONGO_APP_URI", DEFAULT_URI)
+# Récupération de l'URI depuis les variables d'environnement
+URI = os.getenv("MONGO_APP_URI")
 DB_NAME = os.getenv("APP_DB_NAME", "healthcare_db")
 
 def main():
+    if not URI:
+        print("Erreur : La variable d'environnement MONGO_APP_URI est introuvable.")
+        return
+
     print("\n=== Démonstration des opérations CRUD (Create, Read, Update, Delete) ===")
     
     # --- CONNEXION ---
@@ -40,7 +41,7 @@ def main():
     
     insert_result = collection.insert_one(nouveau_patient)
     patient_id = insert_result.inserted_id
-    print(f"✅ Patient ajouté avec succès. L'ID généré est : {patient_id}\n")
+    print(f"Patient ajouté avec succès. L'ID généré est : {patient_id}\n")
 
     # ---------------------------------------------------------
     # 2. READ - Recherche d'un document spécifique
