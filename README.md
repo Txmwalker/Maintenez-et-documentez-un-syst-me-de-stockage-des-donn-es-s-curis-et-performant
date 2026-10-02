@@ -11,7 +11,36 @@ Ce projet implémente un pipeline de données permettant le nettoyage, la transf
 
 ## Prérequis
 * Docker Desktop installé et en cours d'exécution
-* Fichier `.env` correctement renseigné à la racine.
+* Fichier `.env` correctement renseigné à la racine (voir ci-dessous).
+
+## Configuration du fichier `.env`
+
+Les identifiants ne sont jamais versionnés. Un modèle sans secrets, `.env.example`, liste toutes les variables nécessaires :
+
+```bash
+# Linux / macOS
+cp .env.example .env
+
+# Windows (PowerShell)
+Copy-Item .env.example .env
+```
+
+Ouvrez ensuite `.env` et remplacez chaque valeur `change_me_...` par un mot de passe fort :
+
+| Variable | Rôle |
+|---|---|
+| `MONGO_INITDB_ROOT_USERNAME` / `MONGO_INITDB_ROOT_PASSWORD` | Compte administrateur (root) MongoDB |
+| `APP_DB_USER` / `APP_DB_PASSWORD` | Compte applicatif (`readWrite` sur la base) utilisé par les scripts |
+| `APP_DB_NAME` | Nom de la base (`healthcare_db`) |
+| `READ_DB_USER` / `READ_DB_PASSWORD` | Compte analyste en lecture seule |
+| `MONGO_APP_URI` | URI utilisée dans le conteneur (hôte `mongodb`, port `27017`) |
+| `MONGO_LOCAL_URI` | URI utilisée depuis la machine hôte (hôte `localhost`, port `27018`) |
+
+Dans `MONGO_APP_URI` et `MONGO_LOCAL_URI`, l'utilisateur, le mot de passe et la base doivent correspondre à `APP_DB_USER`, `APP_DB_PASSWORD` et `APP_DB_NAME`.
+
+> Les comptes sont créés uniquement au **premier** démarrage du volume MongoDB. Si vous modifiez `.env` après coup, réinitialisez le volume avec `docker-compose down -v`.
+
+Le fichier `.env` est exclu du dépôt (`.gitignore`) et de l'image Docker (`.dockerignore`).
 
 
 ## 1. Déploiement et Exécution Automatisée
@@ -31,28 +60,32 @@ docker-compose run --rm migration_and_tests
 Si l'infrastructure (le conteneur mongodb_healthcare) est déjà en cours de fonctionnement et que vous souhaitez rejouer les scripts localement :
 Activez votre environnement virtuel Python local.
 
+Les variables sont chargées depuis `.env`, puis `MONGO_APP_URI` est redirigée vers `MONGO_LOCAL_URI` (accès depuis l'hôte). Aucun mot de passe n'est saisi en clair dans le terminal.
+
 ```bash
-#Définissez la chaîne de connexion (qui simule les identifiants présents dans le .env pour un accès depuis votre hôte) :
-export MONGO_APP_URI="mongodb://healthcare_user:AppSecretPassword_456@localhost:27018/healthcare_db"
-export APP_DB_NAME="healthcare_db"
+# Linux / macOS : chargement du .env
+set -a; source .env; set +a
+export MONGO_APP_URI="$MONGO_LOCAL_URI"
 
-#Lancez le script de migration :
-python Script/migration.py
+# Lancez le script de migration :
+python migration.py
+```
 
-Exécutez les contrôles qualité :
+```powershell
+# Windows (PowerShell) : chargement du .env
+Get-Content .env | Where-Object { $_ -match '^[^#].*=' } | ForEach-Object { $k, $v = $_ -split '=', 2; Set-Item "env:$k" $v }
+$env:MONGO_APP_URI = $env:MONGO_LOCAL_URI
 
-pytest Script/test_migration.py
+# Lancez le script de migration :
+python migration.py
 ```
 
 ## 3. Tests et Validation
 
-```bash
-#Sous Linux / macOS, commande :
-TEST_MONGO_URI="mongodb://admin:supersecretpassword@localhost:27018/?authSource=admin" pytest test_migration.py
+Les tests utilisent la même variable `MONGO_APP_URI` (compte applicatif) que la migration. Après avoir chargé le `.env` comme à l'étape 2 :
 
-#Sous Windows (PowerShell), commandes :
-$env:TEST_MONGO_URI="mongodb://admin:supersecretpassword@localhost:27018/?authSource=admin"
-pytest test_migration.py
+```bash
+pytest test_migration.py -v
 ```
 
 ## 4. Maintenance de l'Infrastructure
@@ -94,7 +127,9 @@ Mode d'authentification : SCRAM-SHA-256 (Standard MongoDB).
 
 Rôle Administrateur (Root) : Utilisateur admin créé au lancement via MONGO_INITDB_ROOT_USERNAME. Il possède les droits globaux sur le cluster.
 
-Évolution Cloud (AWS) : Pour un futur passage en production sur AWS (DocumentDB ou ECS), un rôle avec le privilège restrictif readWrite limité exclusivement à la base healthcare_db devra être créé pour le script applicatif, respectant ainsi le principe du moindre privilège.
+Rôle Applicatif (Read/Write) : Utilisateur `healthcare_user` (variable `APP_DB_USER`) **déjà créé** au lancement par `init-mongo.js`, avec le seul privilège `readWrite` sur la base `healthcare_db`. C'est ce compte, et non le compte root, qu'utilisent les scripts de migration, de test et de CRUD via `MONGO_APP_URI`, conformément au principe du moindre privilège.
+
+Évolution Cloud (AWS) : Lors d'un passage en production sur AWS (DocumentDB ou ECS), ce même découpage des rôles serait conservé, les secrets étant alors stockés dans AWS Secrets Manager plutôt que dans un fichier `.env`.
 
 Rôle Analyste (Read-Only) : Utilisateur `healthcare_reader` créé au lancement, possédant uniquement le privilège `read` sur la base `healthcare_db`. Ce compte est dédié aux outils de Business Intelligence (BI) et d'audit pour consulter les données sans risque de modification.
 
