@@ -1,9 +1,6 @@
 # Variables d'environnement (mots de passe)
 .env
 
-# Données lourdes ou privées
-data/
-
 # Fichiers générés par Python et les tests
 __pycache__/
 .pytest_cache/
